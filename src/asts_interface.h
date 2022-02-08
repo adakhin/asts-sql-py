@@ -11,8 +11,26 @@ namespace ad::asts {
 
 typedef char fld_attr_t; // TFieldFlags {ffKey = 0x01, ffSecCode = 0x02, ffNotNull = 0x04, ffVarBlock = 0x08}
 typedef unsigned fld_size_t;
+
 // we can't use native MTESRL field types because we need to have NULL as a separate type
 enum class AstsFieldType { kChar, kInteger, kFixed, kFloat, kDate, kTime, kFloatPoint, kNull };
+static std::string FieldTypeToStr(AstsFieldType t)
+{
+  switch (t)
+  {
+  case AstsFieldType::kChar:       return "ftChar";
+  case AstsFieldType::kInteger:    return "ftInteger";
+  case AstsFieldType::kFixed:      return "ftFixed";
+  case AstsFieldType::kFloat:      return "ftFloat";
+  case AstsFieldType::kDate:       return "ftDate";
+  case AstsFieldType::kTime:       return "ftTime";
+  case AstsFieldType::kFloatPoint: return "ftFloatPoint";
+  case AstsFieldType::kNull:       return "NULL";
+  default:                         break;
+  }
+  return "Unknown";
+}
+
 
 struct AstsGenericField {
   std::string name;
@@ -29,6 +47,7 @@ struct AstsOutField : AstsGenericField {};
 struct AstsInField : AstsGenericField {
   std::string defaultvalue;
   int * ReadFromBuf(int * pointer);
+  std::string ToStr(void);
 };
 
 struct AstsTable {
@@ -42,6 +61,7 @@ struct AstsTable {
   int systemidx;
 
   int * ReadFromBuf(int * pointer);
+  std::string ToStr(void);
 };
 
 class AstsInterface {

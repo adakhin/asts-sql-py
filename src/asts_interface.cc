@@ -1,5 +1,7 @@
 #include "asts_interface.h"
 
+#include <fstream>
+
 #include "mtesrl.h"
 #include "mteerr.h"
 
@@ -28,6 +30,13 @@ int* AstsInField::ReadFromBuf(int* pointer) {
   pointer = AstsGenericField::ReadFromBuf(pointer);
   pointer = ut::ReadValueFromBuf(pointer, defaultvalue);
   return pointer;
+}
+
+std::string AstsGenericField::ToStr(void) {
+  return " ** FIELD "+name+" Size="+std::to_string(size)+" Type="+FieldTypeToStr(type)+" Decimals="+std::to_string(decimals)+" Attr="+std::to_string(attr);
+}
+std::string AstsInField::ToStr(void) {
+  return AstsGenericField::ToStr()+" Default='"+defaultvalue+"'";
 }
 
 //----------------------------------------------------------------------------
@@ -62,6 +71,17 @@ int* AstsTable::ReadFromBuf(int* pointer) {
   return pointer;
 }
 
+std::string AstsTable::ToStr(void) {
+  std::string result = "TABLE "+name+" Attr="+std::to_string(attr)+"\n";
+  result = result + " * IN FIELDS:\n";
+  for (AstsInField i : infields)
+    result = result + i.ToStr()+"\n";
+  result = result + " * OUT FIELDS:\n";
+  for (AstsOutField i : outfields)
+    result = result + i.ToStr()+"\n";
+  return result;
+}
+
 //----------------------------------------------------------------------------
 
 bool AstsInterface::LoadInterface(int handle, std::string & errmsg, bool debug) {
@@ -74,8 +94,8 @@ bool AstsInterface::LoadInterface(int handle, std::string & errmsg, bool debug) 
   }
   int * pointer = (int *)ifacedata->Data;
   ReadFromBuf(pointer);
-//if(debug)
-//  Dump();
+  if(debug)
+    Dump();
   return true;
 }
 
@@ -117,6 +137,18 @@ void AstsInterface::ReadFromBuf(int * pointer) {
   // add prefix to table name for each table
   for(auto & t_data: tables_temp)
     tables.insert({ prefix_+t_data.second->name, t_data.second});
+}
+
+void AstsInterface::Dump(void) {
+  std::ofstream fl;
+  fl.open(name_+".txt", std::ios::out);
+  fl << "INTERFACE " << name_ << std::endl;
+  fl << "this interface has prefix " << prefix_ << std::endl << std::endl;
+  fl << "Tables:" << std::endl << std::endl;
+  for(auto rec : tables)
+    fl << rec.second->ToStr() << std::endl;
+  fl << std::endl;
+  fl.close();
 }
 
 }
