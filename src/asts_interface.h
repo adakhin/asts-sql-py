@@ -9,6 +9,7 @@
 
 namespace ad::asts {
 
+//-----------------------------------------------------------------------------------
 typedef char fld_attr_t; // TFieldFlags {ffKey = 0x01, ffSecCode = 0x02, ffNotNull = 0x04, ffVarBlock = 0x08}
 typedef unsigned fld_size_t;
 
@@ -30,7 +31,7 @@ static std::string FieldTypeToStr(AstsFieldType t)
   }
   return "Unknown";
 }
-
+//-----------------------------------------------------------------------------------
 
 struct AstsGenericField {
   std::string name;
@@ -40,14 +41,12 @@ struct AstsGenericField {
   int decimals;
 
   int * ReadFromBuf(int * pointer);
-  std::string ToStr(void);
 };
 
 struct AstsOutField : AstsGenericField {};
 struct AstsInField : AstsGenericField {
   std::string defaultvalue;
   int * ReadFromBuf(int * pointer);
-  std::string ToStr(void);
 };
 
 struct AstsTable {
@@ -61,7 +60,6 @@ struct AstsTable {
   int systemidx;
 
   int * ReadFromBuf(int * pointer);
-  std::string ToStr(void);
 };
 
 class AstsInterface {
@@ -80,6 +78,9 @@ public:
     std::string GetSystemType();
 };
 
+std::ostream & operator<< (std::ostream & os, const AstsGenericField & fld);
+std::ostream & operator<< (std::ostream & os, const AstsInField & fld);
+std::ostream & operator<< (std::ostream & os, const AstsTable & tbl);
 
 }
 #endif // ASTS_INTERFACE_H

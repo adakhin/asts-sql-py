@@ -32,13 +32,6 @@ int* AstsInField::ReadFromBuf(int* pointer) {
   return pointer;
 }
 
-std::string AstsGenericField::ToStr(void) {
-  return " ** FIELD "+name+" Size="+std::to_string(size)+" Type="+FieldTypeToStr(type)+" Decimals="+std::to_string(decimals)+" Attr="+std::to_string(attr);
-}
-std::string AstsInField::ToStr(void) {
-  return AstsGenericField::ToStr()+" Default='"+defaultvalue+"'";
-}
-
 //----------------------------------------------------------------------------
 
 int* AstsTable::ReadFromBuf(int* pointer) {
@@ -69,17 +62,6 @@ int* AstsTable::ReadFromBuf(int* pointer) {
     }
   }
   return pointer;
-}
-
-std::string AstsTable::ToStr(void) {
-  std::string result = "TABLE "+name+" Attr="+std::to_string(attr)+"\n";
-  result = result + " * IN FIELDS:\n";
-  for (AstsInField i : infields)
-    result = result + i.ToStr()+"\n";
-  result = result + " * OUT FIELDS:\n";
-  for (AstsOutField i : outfields)
-    result = result + i.ToStr()+"\n";
-  return result;
 }
 
 //----------------------------------------------------------------------------
@@ -145,10 +127,31 @@ void AstsInterface::Dump(void) {
   fl << "INTERFACE " << name_ << std::endl;
   fl << "this interface has prefix " << prefix_ << std::endl << std::endl;
   fl << "Tables:" << std::endl << std::endl;
-  for(auto rec : tables)
-    fl << rec.second->ToStr() << std::endl;
+  for(auto & rec : tables)
+    fl << *rec.second << std::endl;
   fl << std::endl;
   fl.close();
 }
 
+std::ostream & operator<< (std::ostream & os, const AstsGenericField & fld) {
+  os << " ** FIELD " << fld.name << " Size=" << std::to_string(fld.size) << " Type=";
+  os << FieldTypeToStr(fld.type) << " Decimals="+std::to_string(fld.decimals) << " Attr=" << std::to_string(fld.attr);
+  return os;
+}
+
+std::ostream & operator<< (std::ostream & os, const AstsInField & fld) {
+  os << (AstsGenericField)fld << " Default='"+fld.defaultvalue+"'" << std::endl;
+  return os;
+}
+
+std::ostream& operator<< (std::ostream& os, const AstsTable& tbl) {
+  os << "TABLE " << tbl.name << " Attr=" << std::to_string(tbl.attr) << std::endl;
+  os << " * IN FIELDS:" <<std::endl;
+  for (AstsInField i : tbl.infields)
+    os << i << std::endl;
+  os << " * OUT FIELDS:" <<std::endl;
+  for (AstsOutField i : tbl.outfields)
+    os << i << std::endl;
+  return os;
+}
 }
