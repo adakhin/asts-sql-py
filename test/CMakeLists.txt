@@ -9,10 +9,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 add_compile_options(-Wall -Wextra -pedantic) # -Werror
 
-include_directories(../src/ /opt/mtesrl)
+include_directories(../src/ /opt/mtesrl/embedded)
 
 add_library(mtesrl SHARED IMPORTED)
-set_property(TARGET mtesrl PROPERTY IMPORTED_LOCATION /opt/mtesrl/libmtesrl.so)
+set_property(TARGET mtesrl PROPERTY IMPORTED_LOCATION /opt/mtesrl/embedded/libmtesrl.so)
 
 add_executable(astsclnt ${SOURCE_SQL} ${SOURCE_CLNT})
 target_link_libraries(astsclnt mtesrl)
