@@ -4,6 +4,7 @@
 #include <boost/property_tree/ini_parser.hpp>
 
 #include "../src/asts_connection.h"
+#include "../src/storage/sqlite.h"
 
 namespace pt=boost::property_tree;
 
@@ -13,7 +14,7 @@ int main() {
   pt::read_ini("config.ini", tree);
   for(auto v : tree.get_child("TSMR"))
     connect_str.append(v.first+"="+v.second.data()+"\r\n");
-  ad::asts::AstsConnection asts;
+  ad::asts::AstsConnection<ad::asts::sqlite_storage> asts;
   if(!asts.Connect("TE", connect_str, errormsg)) {
     std::cout<< errormsg << std::endl;
     return 1;

@@ -15,7 +15,7 @@ typedef unsigned fld_size_t;
 
 // we can't use native MTESRL field types because we need to have NULL as a separate type
 enum class AstsFieldType { kChar, kInteger, kFixed, kFloat, kDate, kTime, kFloatPoint, kNull };
-static std::string FieldTypeToStr(AstsFieldType t)
+inline std::string FieldTypeToStr(AstsFieldType t)
 {
   switch (t)
   {
