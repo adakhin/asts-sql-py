@@ -1,10 +1,27 @@
 #ifndef STORAGE_SQLITE_H
 #define STORAGE_SQLITE_H
 #include <sqlite3.h>
+#include <string_view>
+
+#include "../asts_interface.h"
+
 namespace ad::asts {
 
-class sqlite_storage {
+class SQLiteStorage {
+private:
+  sqlite3* db_;
+  inline void ExecOrThrow(std::string_view sql, std::string errormsg="Ошибка при выполнении запроса: ");
 
+public:
+  SQLiteStorage();
+  ~SQLiteStorage();
+  // MTESRL-related operaions
+  void AddInterface(std::shared_ptr<AstsInterface> iface); // Connect
+  void RemoveInterface(std::shared_ptr<AstsInterface> iface); // Disconnect
+  void OpenTable();
+  void CloseTable();
+  void RefreshTable();
+  void Query(std::string_view query);
 };
 
 } // ad::asts

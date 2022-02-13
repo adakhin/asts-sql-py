@@ -14,7 +14,7 @@ typedef char fld_attr_t; // TFieldFlags {ffKey = 0x01, ffSecCode = 0x02, ffNotNu
 typedef unsigned fld_size_t;
 
 // we can't use native MTESRL field types because we need to have NULL as a separate type
-enum class AstsFieldType { kChar, kInteger, kFixed, kFloat, kDate, kTime, kFloatPoint, kNull };
+enum AstsFieldType { kChar, kInteger, kFixed, kFloat, kDate, kTime, kFloatPoint, kNull };
 inline std::string FieldTypeToStr(AstsFieldType t)
 {
   switch (t)
@@ -62,14 +62,12 @@ struct AstsTable {
   int * ReadFromBuf(int * pointer);
 };
 
-class AstsInterface {
-private:
+struct AstsInterface {
     std::string prefix_="RE$";
-    std::unordered_map<std::string, std::shared_ptr<AstsTable> > tables;
-public:
     std::string name_="";
     std::string caption_="";
     std::string description_="";
+    std::unordered_map<std::string, std::shared_ptr<AstsTable> > tables;
 
     void ReadFromBuf(int * pointer);
     bool LoadInterface(int handle, std::string & errmsg, bool debug = false);

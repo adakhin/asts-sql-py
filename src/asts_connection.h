@@ -38,6 +38,7 @@ public:
   //    errmsg = "Unable to load interface!";
       return false;
     }
+    engine_.AddInterface(interfaces_[system]);
 
     return true;
 

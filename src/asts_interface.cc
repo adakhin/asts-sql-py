@@ -133,6 +133,12 @@ void AstsInterface::Dump(void) {
   fl.close();
 }
 
+std::string AstsInterface::GetSystemType() {
+  return prefix_.substr(0, 2);
+}
+
+//----------------------------------------------------------------------------
+
 std::ostream & operator<< (std::ostream & os, const AstsGenericField & fld) {
   os << " ** FIELD " << fld.name << " Size=" << std::to_string(fld.size) << " Type=";
   os << FieldTypeToStr(fld.type) << " Decimals="+std::to_string(fld.decimals) << " Attr=" << std::to_string(fld.attr);
