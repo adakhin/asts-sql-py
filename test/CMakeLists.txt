@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 project(astsclnt)
 
 
-set(SOURCE_SQL ../src/asts_sql.cc ../src/asts_interface.cc)
+set(SOURCE_SQL ../src/asts_connection.cc ../src/asts_interface.cc)
 set(SOURCE_CLNT main.cc)
 
 set(CMAKE_CXX_STANDARD 17)

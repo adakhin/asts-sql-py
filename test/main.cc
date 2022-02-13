@@ -3,7 +3,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
 
-#include "../src/asts_sql.h"
+#include "../src/asts_connection.h"
 
 namespace pt=boost::property_tree;
 
