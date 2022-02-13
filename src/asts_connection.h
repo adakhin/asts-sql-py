@@ -11,27 +11,6 @@
 #include "asts_interface.h"
 
 namespace ad::asts {
-typedef int MTEHandle;
-
-struct AstsOpenedTable {
-  // MTESRL API parameters
-  MTEHandle Table = 0;
-  int ref = 0;
-
-  std::shared_ptr<AstsInterface> iface_;
-  std::shared_ptr<AstsTable> thistable_ = nullptr;
-  std::string tablename_;
-  std::map<std::string, std::string> inparams;
-
-  AstsOpenedTable(std::shared_ptr<AstsInterface> iface, std::string table) noexcept {
-    thistable_ = iface->tables[table];
-    iface_ = iface;
-    tablename_ = table;
-  }
-    //std::string ParamsToStr(void);
-};
-
-
 
 template<typename storage_engine_t> class AstsConnection {
 private:

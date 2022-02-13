@@ -7,9 +7,14 @@
 #include <vector>
 #include <memory>
 
+#ifndef MTE_SQL_MAX_FIELDS
+#define MTE_SQL_MAX_FIELDS 255
+#endif
+
 namespace ad::asts {
 
 //-----------------------------------------------------------------------------------
+typedef int MTEHandle;
 typedef char fld_attr_t; // TFieldFlags {ffKey = 0x01, ffSecCode = 0x02, ffNotNull = 0x04, ffVarBlock = 0x08}
 typedef unsigned fld_size_t;
 
@@ -75,6 +80,25 @@ struct AstsInterface {
 
     std::string GetSystemType();
 };
+
+struct AstsOpenedTable {
+  // MTESRL API parameters
+  MTEHandle Table = 0;
+  int ref = 0;
+
+  std::shared_ptr<AstsInterface> iface_;
+  std::shared_ptr<AstsTable> thistable_ = nullptr;
+  std::string tablename_;
+  std::map<std::string, std::string> inparams;
+
+  AstsOpenedTable(std::shared_ptr<AstsInterface> iface, std::string table) noexcept {
+    thistable_ = iface->tables[table];
+    iface_ = iface;
+    tablename_ = table;
+  }
+    //std::string ParamsToStr(void);
+};
+
 
 std::ostream & operator<< (std::ostream & os, const AstsGenericField & fld);
 std::ostream & operator<< (std::ostream & os, const AstsInField & fld);
