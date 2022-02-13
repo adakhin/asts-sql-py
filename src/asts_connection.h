@@ -1,5 +1,5 @@
-#ifndef ASTS_SQL_H
-#define ASTS_SQL_H
+#ifndef ASTS_CONNECTION_H
+#define ASTS_CONNECTION_H
 
 #include <string>
 #include <map>
@@ -23,4 +23,4 @@ public:
 };
 
 }
-#endif // ASTS_SQL_H
+#endif // ASTS_CONNECTION_H
