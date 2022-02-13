@@ -19,7 +19,7 @@ public:
   void AddInterface(std::shared_ptr<AstsInterface> iface); // Connect
   void RemoveInterface(std::shared_ptr<AstsInterface> iface); // Disconnect
   void OpenTable(std::shared_ptr<AstsInterface> iface, const std::string& tablename);
-  void CloseTable();
+  void CloseTable(const std::string& tablename);
   void RefreshTable();
   void Query(std::string_view query);
 };

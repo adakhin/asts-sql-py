@@ -113,4 +113,9 @@ void SQLiteStorage::OpenTable(std::shared_ptr<AstsInterface> iface, const std::s
   }
 }
 
+void SQLiteStorage::CloseTable(const std::string& tablename) {
+  std::string del = "delete from "+tablename+";";
+  ExecOrThrow(del, "SQLite error occured while deleting table "+tablename);
+}
+
 }

@@ -20,13 +20,13 @@ struct AstsOpenedTable {
 
   std::shared_ptr<AstsInterface> iface_;
   std::shared_ptr<AstsTable> thistable_ = nullptr;
-//  std::string tablename;
+  std::string tablename_;
   std::map<std::string, std::string> inparams;
 
   AstsOpenedTable(std::shared_ptr<AstsInterface> iface, std::string table) noexcept {
     thistable_ = iface->tables[table];
     iface_ = iface;
-    //tablename_ = table;
+    tablename_ = table;
   }
     //std::string ParamsToStr(void);
 };
@@ -40,6 +40,31 @@ private:
   std::map<std::string, AstsOpenedTable*> tables_;
   bool debug_ = true;
   storage_engine_t engine_;
+
+  void NewTableInternal(const std::string& system, const std::string& tablename) {
+    if(interfaces_[system]->tables.find(tablename) == interfaces_[system]->tables.end())
+        throw std::runtime_error("Table "+tablename+" does not exist in interface "+interfaces_[system]->name_);
+    // only one copy of each table may be opened
+    if (tables_.find(tablename) != tables_.end())
+        throw std::runtime_error("Table "+tablename+" has been already opened");
+    engine_.OpenTable(interfaces_[system], tablename);
+    tables_[tablename] = new AstsOpenedTable(interfaces_[system], tablename);
+  }
+
+  void LoadTableInternal(const std::string& system, AstsOpenedTable* tbl) {
+    MTEMSG *TableData;
+    //std::string params = tbl->ParamsToStr();
+    std::string params = "";
+    tbl->Table = MTEOpenTable(handles_[system], (char *)tbl->thistable_->name.c_str(), (char *)params.c_str(), 1, &TableData);
+    if(tbl->Table >= 0)
+    {
+       // load actual data
+       int32_t* ptr = (int32_t*)(TableData->Data);
+    }
+    else
+        throw std::runtime_error("Unable to load table "+tbl->tablename_+": "+std::string(TableData->Data, TableData->DataLen));
+
+  }
 public:
   bool Connect(const std::string & system, const std::string & params, std::string & errmsg){
     if(handles_.find(system) == handles_.end())
@@ -86,15 +111,23 @@ public:
       return system;
   }
 
-  void OpenTable(const std::string& tablename) {
+  void OpenTable(const std::string tablename, std::map<std::string, std::string> inparams={}) {
     std::string system = GetSystemFromTableName(tablename);
-    if(interfaces_[system]->tables.find(tablename) == interfaces_[system]->tables.end())
-        throw std::runtime_error("Table "+tablename+" does not exist in interface "+interfaces_[system]->name_);
-    // only one copy of each table may be opened
-    if (tables_.find(tablename) != tables_.end())
-        throw std::runtime_error("Table "+tablename+" has been already opened");
-    engine_.OpenTable(interfaces_[system], tablename);
-    tables_[tablename] = new AstsOpenedTable(interfaces_[system], tablename);
+    NewTableInternal(system, tablename);
+    auto tbl = tables_[tablename];
+    if(!inparams.empty())
+        tbl->inparams = inparams;
+    LoadTableInternal(system, tables_[tablename]);
+  }
+
+  void CloseTable(const std::string tablename) {
+    std::string system = GetSystemFromTableName(tablename);
+    if (tables_.find(tablename) == tables_.end())
+      throw std::runtime_error("Table "+tablename+" has not been opened");
+    if(handles_[system] >= 0)
+      MTECloseTable(handles_[system], tables_[tablename]->ref);
+    delete tables_[tablename];
+    tables_.erase(tablename);
   }
 
 };
