@@ -2,15 +2,25 @@
 #define UTIL_H
 
 #include <string>
+#include <vector>
 
 namespace ad::util {
 
-static int* ReadValueFromBuf(int* pointer, int & result) {
+inline std::string join(const std::vector<std::string>& v, const std::string& delimiter) {
+  std::string result;
+  for (size_t i = 0; i < v.size(); ++i)
+    result += (i ? delimiter : "") + v[i];
+  return result;
+}
+
+//----- MTESRL buffer routines -----------------------------
+
+inline int* ReadValueFromBuf(int* pointer, int & result) {
   result = *pointer;
   return (int32_t *)(pointer + 1);
 }
 
-static int* ReadValueFromBuf(int* pointer, std::string & result) {
+inline int* ReadValueFromBuf(int* pointer, std::string & result) {
   int datalen = 0;
   datalen = *pointer;
   char* data = (char *)(pointer + 1);
@@ -18,11 +28,11 @@ static int* ReadValueFromBuf(int* pointer, std::string & result) {
   return (int *)(data + datalen);
 }
 
-static int* SkipIntFromBuf(int* pointer) {
+inline int* SkipIntFromBuf(int* pointer) {
   return (int32_t *)(pointer + 1);
 }
 
-static int* SkipStringFromBuf(int* pointer) {
+inline int* SkipStringFromBuf(int* pointer) {
   return (int *)((char *)(pointer + 1) + (int)*pointer);
 }
 

@@ -18,7 +18,7 @@ public:
   // MTESRL-related operaions
   void AddInterface(std::shared_ptr<AstsInterface> iface); // Connect
   void RemoveInterface(std::shared_ptr<AstsInterface> iface); // Disconnect
-  void OpenTable();
+  void OpenTable(std::shared_ptr<AstsInterface> iface, const std::string& tablename);
   void CloseTable();
   void RefreshTable();
   void Query(std::string_view query);
