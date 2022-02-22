@@ -65,5 +65,22 @@ inline int* SkipStringFromBuf(int* pointer) {
   return (int *)((char *)(pointer + 1) + (int)*pointer);
 }
 
+inline std::string rpad(std::string s, size_t length) {
+  if(s.size() < length) {
+    size_t actl = s.length();
+    s.insert(actl, length - actl, ' ');
+  }
+  return s;
+}
+
+
+inline std::string lpad(std::string s, size_t length) {
+  if(s.size() < length) {
+    size_t actl = s.length();
+    s.insert(0, length - actl, ' ');
+  }
+  return s;
+}
+
 }
 #endif // UTIL_H
