@@ -4,11 +4,13 @@
 #include <string>
 #include <map>
 #include <memory>
+#include <string.h> // memset
 
 #include "mtesrl.h"
 #include "mteerr.h"
 
 #include "asts_interface.h"
+#include "util.h"
 
 namespace ad::asts {
 
@@ -26,7 +28,7 @@ private:
     // only one copy of each table may be opened
     if (tables_.find(tablename) != tables_.end())
         throw std::runtime_error("Table "+tablename+" has been already opened");
-    engine_.OpenTable(interfaces_[system], tablename);
+    engine_.CreateTable(interfaces_[system], tablename);
     tables_[tablename] = new AstsOpenedTable(interfaces_[system], tablename);
   }
 
@@ -34,14 +36,43 @@ private:
     MTEMSG *TableData;
     std::string params = tbl->ParamsToStr();
     tbl->Table = MTEOpenTable(handles_[system], (char *)tbl->thistable_->name.c_str(), (char *)params.c_str(), 1, &TableData);
-    if(tbl->Table >= 0)
-    {
+    if(tbl->Table >= 0) {
        // load actual data
        int32_t* ptr = (int32_t*)(TableData->Data);
+       ad::util::PointerHelper buffer(ptr);
+       tbl->ref = buffer.ReadInt();
+       int row_count = buffer.ReadInt();
+       if(!row_count)
+         return;
+       int datalen = 0;
+       unsigned char fldcount = 0;
+       unsigned char fldnums[MTE_SQL_MAX_FIELDS] = {0};
+       unsigned char fldnums_prev[MTE_SQL_MAX_FIELDS] = {0};
+       bool is_orderbook = (tbl->thistable_->attr & mmfOrderBook);
+       for(int i=0; i<row_count; i++) {
+         // FieldCount Byte
+         fldcount = buffer.ReadChar();
+         // DataLength Integer
+         datalen = buffer.ReadInt();
+         // determine list of fields in table
+         // WARNING: field order in interface and real data may differ!
+         memset(fldnums, 0x00, sizeof(fldnums));
+         if(fldcount != 0) {
+           // explicit list of fields - copy it to our own buffer from MTESRL-managed one
+           memcpy(fldnums, (unsigned char*)buffer._ptr, fldcount);
+           buffer.Rewind(fldcount);
+         }
+         else {
+           // all fields - fill our buffer with consecutive numbers up to outfield_count for this table
+           for (size_t f=0; f<tbl->thistable_->outfield_count; f++)
+             fldnums[f] = f;
+         }
+         engine_.ReadRowFromBuffer(tbl, buffer, fldnums, fldnums_prev, fldcount ? fldcount : tbl->thistable_->outfield_count);
+         memcpy(fldnums_prev, fldnums, sizeof(fldnums_prev));
+      }
     }
     else
-        throw std::runtime_error("Unable to load table "+tbl->tablename_+": "+std::string(TableData->Data, TableData->DataLen));
-
+      throw std::runtime_error("Unable to load table "+tbl->tablename_+": "+std::string(TableData->Data, TableData->DataLen));
   }
 public:
   bool Connect(const std::string & system, const std::string & params, std::string & errmsg){

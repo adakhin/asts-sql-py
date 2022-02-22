@@ -1,6 +1,6 @@
 #include "sqlite.h"
 #include "../util.h"
-
+#include <iostream>
 #include <mtesrl.h>
 
 namespace ad::asts {
@@ -53,7 +53,7 @@ void SQLiteStorage::AddInterface(std::shared_ptr<AstsInterface> iface) {
   sql.append("create index if not exists MTE$STRUCTURE_IDX on MTE$STRUCTURE (table_name, field_name);");
 }
 
-void SQLiteStorage::OpenTable(std::shared_ptr<AstsInterface> iface, const std::string& tablename) {
+void SQLiteStorage::CreateTable(std::shared_ptr<AstsInterface> iface, const std::string& tablename) {
   // check if table exists
   std::string expr = "SELECT * FROM sqlite_master WHERE name ='"+tablename+"' and type='table' COLLATE NOCASE;";
   sqlite3_stmt *statement;
@@ -110,6 +110,15 @@ void SQLiteStorage::OpenTable(std::shared_ptr<AstsInterface> iface, const std::s
       pk = "";
     create.append(pk.append(");"));
     ExecOrThrow(create, "SQLite error occured while creating table "+tablename);
+  }
+}
+
+void SQLiteStorage::ReadRowFromBuffer(AstsOpenedTable* table, ad::util::PointerHelper& buffer, unsigned char* fldnums, unsigned char* fldnums_prev, unsigned char fldcount) {
+  std::cout << "reading row for table "<< table->tablename_ << std::endl;
+  AstsOutField fld;
+  for (unsigned char c=0; c<fldcount; ++c) {
+    fld = table->thistable_->outfields[fldnums[c]];
+    std::cout << "reading field #"<< int(c) <<" (# in interface is "<< int(fldnums[c]) << ") "<< fld.name << "=" << buffer.ReadString(fld.size) << std::endl;
   }
 }
 
