@@ -7,6 +7,8 @@
 #include <vector>
 #include <memory>
 
+#include "util.h"
+
 #ifndef MTE_SQL_MAX_FIELDS
 #define MTE_SQL_MAX_FIELDS 255
 #endif
@@ -96,7 +98,17 @@ struct AstsOpenedTable {
     iface_ = iface;
     tablename_ = table;
   }
-    //std::string ParamsToStr(void);
+  std::string ParamsToStr(void) {
+    std::string result;
+    for (auto it : thistable_->infields) {
+        auto tmp = inparams.find(it.name);
+        if(tmp == inparams.end())
+          result = result + std::string(it.size, ' ');
+        else result = result + ad::util::rpad(tmp->second, it.size);
+    }
+    return result;
+
+  }
 };
 
 

@@ -32,8 +32,7 @@ private:
 
   void LoadTableInternal(const std::string& system, AstsOpenedTable* tbl) {
     MTEMSG *TableData;
-    //std::string params = tbl->ParamsToStr();
-    std::string params = "";
+    std::string params = tbl->ParamsToStr();
     tbl->Table = MTEOpenTable(handles_[system], (char *)tbl->thistable_->name.c_str(), (char *)params.c_str(), 1, &TableData);
     if(tbl->Table >= 0)
     {
