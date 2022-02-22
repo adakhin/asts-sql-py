@@ -11,7 +11,14 @@ namespace ad::asts {
 class SQLiteStorage {
 private:
   sqlite3* db_;
+  sqlite3_stmt* ins_stmt = NULL;
+  sqlite3_stmt* upd_stmt = NULL;
+
   inline void ExecOrThrow(std::string_view sql, std::string errormsg="Ошибка при выполнении запроса: ");
+  inline void CheckRetCode(int e, const std::string& step, int expected = SQLITE_OK);
+  bool IsQuerySet();
+  void PrepareNextStatement(std::string& masked_tablename, std::shared_ptr<AstsTable> table, fld_count_t* fldnums, fld_count_t fldcount);
+
 public:
   SQLiteStorage();
   ~SQLiteStorage();

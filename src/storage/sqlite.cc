@@ -1,7 +1,9 @@
 #include "sqlite.h"
 #include "../util.h"
 #include <iostream>
+#include <sstream>
 #include <mtesrl.h>
+#include <string.h> // memset
 
 namespace ad::asts {
 
@@ -115,8 +117,13 @@ void SQLiteStorage::CreateTable(std::shared_ptr<AstsInterface> iface, const std:
 
 void SQLiteStorage::ReadRowFromBuffer(AstsOpenedTable* table, ad::util::PointerHelper& buffer, unsigned char* fldnums, unsigned char* fldnums_prev, unsigned char fldcount) {
   std::cout << "reading row for table "<< table->tablename_ << std::endl;
+  bool can_reuse_query = (IsQuerySet() && memcmp(fldnums, fldnums_prev, fldcount) == 0);
+  if(!can_reuse_query) {
+    std::cout << "row structure chaged, must prepare new query!" << std::endl;
+    PrepareNextStatement(table->tablename_, table->thistable_, fldnums, fldcount);
+  }
   AstsOutField fld;
-  for (unsigned char c=0; c<fldcount; ++c) {
+  for(unsigned char c=0; c<fldcount; ++c) {
     fld = table->thistable_->outfields[fldnums[c]];
     std::cout << "reading field #"<< int(c) <<" (# in interface is "<< int(fldnums[c]) << ") "<< fld.name << "=" << buffer.ReadString(fld.size) << std::endl;
   }
@@ -126,5 +133,83 @@ void SQLiteStorage::CloseTable(const std::string& tablename) {
   std::string del = "delete from "+tablename+";";
   ExecOrThrow(del, "SQLite error occured while deleting table "+tablename);
 }
+
+void SQLiteStorage::StartReadingRows(AstsOpenedTable* table) {
+}
+
+void SQLiteStorage::StopReadingRows() {
+  sqlite3_finalize(ins_stmt);
+  sqlite3_finalize(upd_stmt);
+}
+
+bool SQLiteStorage::IsQuerySet() {
+  return (ins_stmt != NULL || upd_stmt != NULL);
+}
+
+void SQLiteStorage::PrepareNextStatement(std::string& masked_tablename, std::shared_ptr<AstsTable> table, fld_count_t* fldnums, fld_count_t fldcount) {
+  std::ostringstream insert, update;
+  std::ostringstream insfields, insvalues;
+  std::ostringstream updfields, updkey;
+  insert << "INSERT OR IGNORE INTO " << masked_tablename << " ";
+  update << "UPDATE " << masked_tablename << " SET ";
+
+  bool haskeyfields = false;
+  bool hasupd = false;
+  bool hasins = false;
+  std::string sqlite_idx;
+  AstsOutField fld;
+  for(fld_count_t c = 0; c < fldcount; ++c) {
+    fld = table->outfields[fldnums[c]];
+    sqlite_idx = "?"+std::to_string((int)c+1); // numbers start with 1
+    if(hasins) {
+      insfields << ",";
+      insvalues << ",";
+    }
+    hasins = true;;
+    insfields << fld.name;
+    insvalues << sqlite_idx;
+    if ( (fld.attr & mffKey) == mffKey) {
+      if(haskeyfields)
+        updkey << " AND ";
+      haskeyfields = true;
+      updkey << fld.name << "=" << sqlite_idx;
+    }
+    else {
+      if(hasupd)
+        updfields << ",";
+      hasupd = true;
+      updfields << fld.name << "=" << sqlite_idx;
+    }
+  }
+
+  // INSERT
+  insert << "(" << insfields.str() << ") VALUES (" << insvalues.str() << ");";
+  if(hasupd) {
+    update << updfields.str();
+    if(haskeyfields)
+      update<< " WHERE " << updkey.str();
+  }
+  else
+    update.str("");
+
+  int error = sqlite3_finalize(ins_stmt);
+  CheckRetCode(error, "FINALIZE INSERT");
+  error = sqlite3_finalize(upd_stmt);
+  CheckRetCode(error, "FINALIZE UPDATE");
+  if(hasupd) {
+    error = sqlite3_prepare_v2(db_, update.str().c_str(), -1, &upd_stmt, 0);
+    CheckRetCode(error, "PREPARE UPDATE");
+  }
+  else
+    upd_stmt = NULL;
+  error = sqlite3_prepare_v2(db_, insert.str().c_str(), -1, &ins_stmt, 0);
+  CheckRetCode(error, "PREPARE INSERT");
+}
+
+void SQLiteStorage::CheckRetCode(int e, const std::string &step, int expected) {
+  if(e != expected)
+    throw std::runtime_error("Error on "+step+" step: "+std::string(sqlite3_errmsg(db_)));
+}
+
 
 }

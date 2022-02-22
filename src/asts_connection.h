@@ -45,9 +45,9 @@ private:
        if(!row_count)
          return;
        int datalen = 0;
-       unsigned char fldcount = 0;
-       unsigned char fldnums[MTE_SQL_MAX_FIELDS] = {0};
-       unsigned char fldnums_prev[MTE_SQL_MAX_FIELDS] = {0};
+       fld_count_t fldcount = 0;
+       fld_count_t fldnums[MTE_SQL_MAX_FIELDS] = {0};
+       fld_count_t fldnums_prev[MTE_SQL_MAX_FIELDS] = {0};
        bool is_orderbook = (tbl->thistable_->attr & mmfOrderBook);
        for(int i=0; i<row_count; i++) {
          // FieldCount Byte
@@ -59,7 +59,7 @@ private:
          memset(fldnums, 0x00, sizeof(fldnums));
          if(fldcount != 0) {
            // explicit list of fields - copy it to our own buffer from MTESRL-managed one
-           memcpy(fldnums, (unsigned char*)buffer._ptr, fldcount);
+           memcpy(fldnums, (fld_count_t*)buffer._ptr, fldcount);
            buffer.Rewind(fldcount);
          }
          else {

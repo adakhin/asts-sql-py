@@ -19,6 +19,7 @@ namespace ad::asts {
 typedef int MTEHandle;
 typedef char fld_attr_t; // TFieldFlags {ffKey = 0x01, ffSecCode = 0x02, ffNotNull = 0x04, ffVarBlock = 0x08}
 typedef unsigned fld_size_t;
+typedef unsigned char fld_count_t;
 
 // we can't use native MTESRL field types because we need to have NULL as a separate type
 enum AstsFieldType { kChar, kInteger, kFixed, kFloat, kDate, kTime, kFloatPoint, kNull };
