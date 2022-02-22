@@ -36,6 +36,7 @@ private:
     MTEMSG *TableData;
     std::string params = tbl->ParamsToStr();
     tbl->Table = MTEOpenTable(handles_[system], (char *)tbl->thistable_->name.c_str(), (char *)params.c_str(), 1, &TableData);
+    engine_.StartReadingRows(tbl);
     if(tbl->Table >= 0) {
        // load actual data
        int32_t* ptr = (int32_t*)(TableData->Data);
@@ -70,6 +71,7 @@ private:
          engine_.ReadRowFromBuffer(tbl, buffer, fldnums, fldnums_prev, fldcount ? fldcount : tbl->thistable_->outfield_count);
          memcpy(fldnums_prev, fldnums, sizeof(fldnums_prev));
       }
+      engine_.StopReadingRows();
     }
     else
       throw std::runtime_error("Unable to load table "+tbl->tablename_+": "+std::string(TableData->Data, TableData->DataLen));

@@ -1,11 +1,12 @@
 #include "sqlite.h"
 #include "../util.h"
-#include <iostream>
 #include <sstream>
 #include <mtesrl.h>
 #include <string.h> // memset
 
 namespace ad::asts {
+
+constexpr static const char all_spaces[MTE_SQL_MAX_FIELDS] = {' '};
 
 inline void SQLiteStorage::ExecOrThrow(std::string_view sql, std::string errormsg) {
   char *zErrMsg = nullptr;
@@ -115,17 +116,95 @@ void SQLiteStorage::CreateTable(std::shared_ptr<AstsInterface> iface, const std:
   }
 }
 
-void SQLiteStorage::ReadRowFromBuffer(AstsOpenedTable* table, ad::util::PointerHelper& buffer, unsigned char* fldnums, unsigned char* fldnums_prev, unsigned char fldcount) {
-  std::cout << "reading row for table "<< table->tablename_ << std::endl;
-  bool can_reuse_query = (IsQuerySet() && memcmp(fldnums, fldnums_prev, fldcount) == 0);
-  if(!can_reuse_query) {
-    std::cout << "row structure chaged, must prepare new query!" << std::endl;
+void SQLiteStorage::ReadRowFromBuffer(AstsOpenedTable* table, ad::util::PointerHelper& buffer, fld_count_t* fldnums, fld_count_t* fldnums_prev, fld_count_t fldcount) {
+  // if statements are not set or cannot be reused, we need to prepare next statements
+  if(!(IsStatementPrepared() && memcmp(fldnums, fldnums_prev, fldcount) == 0))
     PrepareNextStatement(table->tablename_, table->thistable_, fldnums, fldcount);
-  }
+
+  // at this point we are sure we have prepared INSERT statement, and maybe we have prepared UPDATE statement as well
+  sqlite3_clear_bindings(ins_stmt);
+  if(upd_stmt != NULL)
+    sqlite3_clear_bindings(upd_stmt);
+
+  int sqlite_idx = 0;
+  int64_t tmpint = 0;
+  double tmpdouble = 0.0;
   AstsOutField fld;
-  for(unsigned char c=0; c<fldcount; ++c) {
+
+  for(fld_count_t c=0; c<fldcount; ++c) {
     fld = table->thistable_->outfields[fldnums[c]];
-    std::cout << "reading field #"<< int(c) <<" (# in interface is "<< int(fldnums[c]) << ") "<< fld.name << "=" << buffer.ReadString(fld.size) << std::endl;
+    memset(tmp_buf, 0x00, sizeof(*tmp_buf)); // reset temp buffer for field data
+    sqlite_idx = c+1;
+    int * ptr = buffer._ptr;
+    // ASTSConnectivty API Guide says NULL is a value consisting only of spaces
+    if(memcmp(ptr, all_spaces, fld.size) == 0) {
+      buffer.Rewind(fld.size);
+      sqlite3_bind_null(ins_stmt, sqlite_idx);
+      if(upd_stmt != NULL)
+          sqlite3_bind_null(upd_stmt, sqlite_idx);
+    }
+    else switch(fld.type) { // regular value
+      case AstsFieldType::kFixed:
+        // copy first part (before dot) of value to temp buffer
+        tmpint = fld.size - fld.decimals;
+        memcpy(tmp_buf, ptr, (int)tmpint);
+        // set the dot
+        tmp_buf[(int)tmpint] = '.';
+        // copy second part of value to temp buffer
+        memcpy(tmp_buf+(int)tmpint+1, (char*)ptr+(int)tmpint, fld.decimals);
+        buffer.Rewind(fld.size);
+        tmpdouble = atof(tmp_buf);
+        sqlite3_bind_double(ins_stmt, sqlite_idx, tmpdouble);
+        if(upd_stmt != NULL)
+          sqlite3_bind_double(upd_stmt, sqlite_idx, tmpdouble);
+        break;
+      case AstsFieldType::kFloatPoint:
+        memcpy(tmp_buf, ptr, fld.size);
+        buffer.Rewind(fld.size);
+        tmpdouble = atof(tmp_buf);
+        sqlite3_bind_double(ins_stmt, sqlite_idx, tmpdouble);
+        if(upd_stmt != NULL)
+          sqlite3_bind_double(upd_stmt, sqlite_idx, tmpdouble);
+        break;
+      case AstsFieldType::kInteger:
+        memcpy(tmp_buf, ptr, fld.size);
+        buffer.Rewind(fld.size);
+        tmpint = strtoll(tmp_buf, nullptr, 10);
+        sqlite3_bind_int64(ins_stmt, sqlite_idx, tmpint);
+        if(upd_stmt != NULL)
+          sqlite3_bind_int64(upd_stmt, sqlite_idx, tmpint);
+        break;
+      case AstsFieldType::kFloat: // we don't know how to format this
+      case AstsFieldType::kChar:
+      case AstsFieldType::kDate: // leave date and time as strings, let upper-level code deal with this
+      case AstsFieldType::kTime:
+      default:
+        sqlite3_bind_text(ins_stmt, sqlite_idx, (char*)ptr, fld.size, SQLITE_TRANSIENT);
+        if(upd_stmt != NULL)
+          sqlite3_bind_text(upd_stmt, sqlite_idx, (char*)ptr, fld.size, SQLITE_TRANSIENT);
+        buffer.Rewind(fld.size);
+        break;
+    }
+  } // for each field in this row
+
+  int error = 0;
+  bool doInsert = false, has_keyfields = !table->thistable_->keyfields.empty();
+  if(has_keyfields && upd_stmt != NULL) {
+    error = sqlite3_step(upd_stmt);
+    CheckRetCode(error, "EXECUTE UPDATE", SQLITE_DONE);
+    // if CheckRetCode throws exception, we won't get here
+    int rows_updated = sqlite3_changes(db_);
+    if(rows_updated == 0)
+      doInsert = true;
+    sqlite3_reset(upd_stmt);
+    CheckRetCode(error, "RESET UPDATE", SQLITE_DONE);
+  }
+  if(doInsert || !has_keyfields) {
+    error = sqlite3_step(ins_stmt);
+    CheckRetCode(error, "EXECUTE INSERT", SQLITE_DONE);
+    // if CheckRetCode throws exception, we won't get here
+    sqlite3_reset(ins_stmt);
+    CheckRetCode(error, "RESET INSERT", SQLITE_DONE);
   }
 }
 
@@ -135,14 +214,18 @@ void SQLiteStorage::CloseTable(const std::string& tablename) {
 }
 
 void SQLiteStorage::StartReadingRows(AstsOpenedTable* table) {
+  tmp_buf = new char[table->thistable_->max_fld_len+2];
 }
 
 void SQLiteStorage::StopReadingRows() {
   sqlite3_finalize(ins_stmt);
   sqlite3_finalize(upd_stmt);
+  ins_stmt = NULL;
+  upd_stmt = NULL;
+  delete[] tmp_buf;
 }
 
-bool SQLiteStorage::IsQuerySet() {
+bool SQLiteStorage::IsStatementPrepared() {
   return (ins_stmt != NULL || upd_stmt != NULL);
 }
 
