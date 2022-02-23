@@ -8,6 +8,22 @@ namespace ad::asts {
 
 constexpr static const char all_spaces[MTE_SQL_MAX_FIELDS] = {' '};
 
+inline AstsFieldType GetColumnType(int ct) {
+  switch(ct)
+  {
+  case SQLITE_INTEGER:
+    return AstsFieldType::kInteger;
+  case SQLITE_FLOAT:
+    return AstsFieldType::kFloat;
+  case SQLITE_TEXT:
+    return AstsFieldType::kChar;
+  case SQLITE_NULL:
+    return AstsFieldType::kNull;
+  default:
+    throw std::runtime_error("Invalid field type in SQLite query results");
+  }
+}
+
 inline void SQLiteStorage::ExecOrThrow(std::string_view sql, std::string errormsg) {
   char *zErrMsg = nullptr;
   int error = sqlite3_exec(db_, sql.data(), NULL, 0, &zErrMsg);
@@ -331,6 +347,7 @@ void SQLiteStorage::Query(std::string_view query, SqlResult& result, std::map<st
       }
       std::vector<std::any> tmp_row;
       for(int i=0; i<ctotal; i++) {
+        int column_type = sqlite3_column_type(statement, i);
         if(is_first_row) { // process metadata
           /*
            * Field name may be one of the following:
@@ -378,27 +395,7 @@ void SQLiteStorage::Query(std::string_view query, SqlResult& result, std::map<st
             size_t f = aliased_fieldname.find_first_of('(');
             aliased_fieldname = aliased_fieldname.substr(0, f);
             cfield.name = fncount_chk(aliased_fieldname);
-            int ct = sqlite3_column_type(statement, i);
-            switch(ct) {
-              case SQLITE_INTEGER:
-                cfield.type = AstsFieldType::kInteger;
-                cfield.size = 16;
-                break;
-              case SQLITE_FLOAT:
-                cfield.type = AstsFieldType::kFloatPoint;
-                cfield.size = 16;
-                break;
-              case SQLITE_TEXT:
-                cfield.type = AstsFieldType::kChar;
-                cfield.size = strlen((char*)sqlite3_column_text(statement, i));
-                break;
-              case SQLITE_NULL:
-                cfield.type = AstsFieldType::kNull;
-                cfield.size = 0;
-                break;
-              case SQLITE_BLOB:
-                throw std::runtime_error("Invalid field type in SQLite query results");
-            }
+            cfield.type = GetColumnType(column_type);
             result.fields.push_back(cfield);
           }
           else { // field found in interfaces
@@ -410,14 +407,35 @@ void SQLiteStorage::Query(std::string_view query, SqlResult& result, std::map<st
             result.fields.push_back(tmp);
           }
         } // if first row (metadata)
+        else {
+          // if a custom field in first row is NULL, we'll try to guess field type from consecutive rows
+          if((result.fields[i].type == AstsFieldType::kNull) && (column_type != SQLITE_NULL))
+            result.fields[i].type = GetColumnType(column_type);
+        }
         // process actual data
-        std::string s;
-        char * ptr = (char*)sqlite3_column_text(statement, i);
-        if(ptr)
-          s = std::string(ptr);
-        else
-          s = "";
-        tmp_row.push_back(std::make_any<std::string>(s));
+        std::any value;
+        char * ptr;
+        if(column_type != SQLITE_NULL)
+          switch(result.fields[i].type) {
+            case AstsFieldType::kChar:
+            case AstsFieldType::kFloat:
+            case AstsFieldType::kDate:
+            case AstsFieldType::kTime:
+              ptr = (char*)sqlite3_column_text(statement, i);
+              value = std::string(ptr ? ptr : "");
+              break;
+            case AstsFieldType::kInteger:
+              value = (int64_t)sqlite3_column_int64(statement, i);
+              break;
+            case AstsFieldType::kFixed:
+            case AstsFieldType::kFloatPoint:
+              value = (double)sqlite3_column_double(statement, i);
+              break;
+            case ad::asts::AstsFieldType::kNull:
+              value.reset();
+              break;
+          }
+        tmp_row.push_back(value);
       } // for value in row
       is_first_row = false;
       result.data.push_back(tmp_row);
