@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <any>
 #include <memory>
 
 #include "util.h"
@@ -112,6 +113,16 @@ struct AstsOpenedTable {
   }
 };
 
+struct SqlOutField {
+  std::string name;
+  AstsFieldType type;
+  fld_size_t size;
+};
+
+struct SqlResult {
+  std::vector<SqlOutField> fields;
+  std::vector<std::vector<std::any> > data;
+};
 
 std::ostream & operator<< (std::ostream & os, const AstsGenericField & fld);
 std::ostream & operator<< (std::ostream & os, const AstsInField & fld);

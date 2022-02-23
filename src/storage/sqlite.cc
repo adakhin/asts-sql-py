@@ -294,5 +294,142 @@ void SQLiteStorage::CheckRetCode(int e, const std::string &step, int expected) {
     throw std::runtime_error("Error on "+step+" step: "+std::string(sqlite3_errmsg(db_)));
 }
 
+void SQLiteStorage::Query(std::string_view query, SqlResult& result, std::map<std::string, std::shared_ptr<AstsInterface> >& interfaces) {
+  result.fields = {};
+  result.data = {};
+  sqlite3_stmt *statement;
+  int error = sqlite3_prepare_v2(db_, query.data(), -1, &statement, 0);
+  if (error == SQLITE_OK) {
+    int ctotal = sqlite3_column_count(statement);
+
+    std::map<std::string, int> fncounts;
+    auto fncount_chk = [&](std::string fieldname) {
+      if(fncounts.find(fieldname) != fncounts.end()) {
+        int c = fncounts[fieldname];
+        fncounts[fieldname] = ++c;
+        return fieldname+std::to_string(c);
+      }
+      else {
+        fncounts[fieldname] = 0;
+        return fieldname;
+      }
+    };
+
+    bool is_first_row = true;
+    std::string aliased_fieldname, tbl;
+    while(true) {
+      int res = sqlite3_step(statement);
+      if(res != SQLITE_ROW) {
+        if (res != SQLITE_DONE)
+          error = res;
+        break;
+      }
+      std::vector<std::any> tmp_row;
+      for(int i=0; i<ctotal; i++) {
+        if(is_first_row) { // process metadata
+          /*
+           * Field name may be one of the following:
+           *  1. field name from interface's table
+           *  2. aliased field name from interface's table
+           *  3. field name from custom table
+           *  4. aliased field name from custom table
+           *  5. aliased expression from query (function, case, etc)
+           * So determining type of field should work this way:
+           *  1. determine real name of field
+           *  2. based on the source of this field:
+           *  2.1 if it's a table from interface - take it from interface
+           *  2.2 if it's an expression - ask SQLite
+           *  2.3 if it's a table NOT from interface - ask SQLite as well
+           * We should check field names for duplicates either way
+          */
+          const char * cn = sqlite3_column_origin_name(statement,i);
+          aliased_fieldname = sqlite3_column_name(statement,i);
+          bool sqlite_type = false;
+          AstsOutField orig_fld;
+          if (cn == NULL) // it's an expression
+            sqlite_type = true;
+          else {
+            // it's a field from some table
+            tbl = sqlite3_column_table_name(statement,i);
+            bool found = false;
+            // search all interfaces for a table with this name
+            for (auto& v : interfaces)
+              if(v.second->tables.find(tbl) != v.second->tables.end()) {
+                auto orig_iface = v.second;
+                for(auto& field : orig_iface->tables[tbl]->outfields)
+                  if(field.name == std::string(cn)) {
+                    sqlite_type = false;
+                    orig_fld = field;
+                    found = true;
+                    break;
+                  }
+              }
+            if(!found)
+              sqlite_type = true;
+          }
+          if(sqlite_type) {
+            SqlOutField cfield;
+            size_t f = aliased_fieldname.find_first_of('(');
+            aliased_fieldname = aliased_fieldname.substr(0, f);
+            cfield.name = fncount_chk(aliased_fieldname);
+            int ct = sqlite3_column_type(statement, i);
+            switch(ct) {
+              case SQLITE_INTEGER:
+                cfield.type = AstsFieldType::kInteger;
+                cfield.size = 16;
+                break;
+              case SQLITE_FLOAT:
+                cfield.type = AstsFieldType::kFloatPoint;
+                cfield.size = 16;
+                break;
+              case SQLITE_TEXT:
+                cfield.type = AstsFieldType::kChar;
+                cfield.size = strlen((char*)sqlite3_column_text(statement, i));
+                break;
+              case SQLITE_NULL:
+                cfield.type = AstsFieldType::kNull;
+                cfield.size = 0;
+                break;
+              case SQLITE_BLOB:
+                throw std::runtime_error("Invalid field type in SQLite query results");
+            }
+            result.fields.push_back(cfield);
+          }
+          else {
+            tbl = sqlite3_column_table_name(statement,i);
+            SqlOutField tmp;
+            tmp.name = fncount_chk(aliased_fieldname);
+            tmp.type = orig_fld.type;
+            tmp.size = orig_fld.size;
+            result.fields.push_back(tmp);
+          }
+        } // if first row (metadata)
+        // process actual data
+        std::string s;
+        char * ptr = (char*)sqlite3_column_text(statement, i);
+        if(ptr)
+          s = std::string(ptr);
+        else
+          s = "";
+        tmp_row.push_back(std::make_any<std::string>(s));
+      } // for value in row
+      is_first_row = false;
+      result.data.push_back(tmp_row);
+    } // while sqlite_step
+  } // if prepare yields SQLITE_OK
+  // finalize statement anyway
+  sqlite3_finalize(statement);
+  if(error != SQLITE_OK) {
+#if SQLITE_VERSION_NUMBER < 3008000
+    std::string errmsg = sqlite3_errmsg(db_);
+#else
+    std::string errmsg = sqlite3_errstr(sqlite3_extended_errcode(db));
+    errmsg += ": "+string(sqlite3_errmsg(db_));
+#endif
+    throw std::runtime_error(errmsg);
+  }
+
+}
+
 
 }

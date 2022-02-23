@@ -141,6 +141,12 @@ public:
     tables_.erase(tablename);
   }
 
+  void Query(const std::string& query, SqlResult& result) {
+    if(query.empty())
+      return;
+    engine_.Query(query, result, interfaces_);
+  }
+
 };
 
 }
