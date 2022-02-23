@@ -43,6 +43,12 @@ SQLiteStorage::~SQLiteStorage() {
   sqlite3_close(db_);
 }
 
+void SQLiteStorage::TransactionControl(const std::string& action){
+  std::string tmp = action+" TRANSACTION;";
+  ExecOrThrow(tmp, "SQLite error occured while changing transaction state");
+}
+
+
 void SQLiteStorage::AddInterface(std::shared_ptr<AstsInterface> iface) {
   std::string sql = "create table if not exists MTE$STRUCTURE (system_type char(2), interface_name char(12), table_name char(12), orig_table_name char(12), field_name char(20), field_type integer, field_length integer, decimals integer);";
   std::string errmsg = std::string("SQLite error while create reflection for interface ")+iface->name_;
@@ -231,9 +237,11 @@ void SQLiteStorage::CloseTable(const std::string& tablename) {
 
 void SQLiteStorage::StartReadingRows(AstsOpenedTable* table) {
   tmp_buf = new char[table->thistable_->max_fld_len+2];
+  TransactionControl("BEGIN");
 }
 
 void SQLiteStorage::StopReadingRows() {
+  TransactionControl("COMMIT");
   sqlite3_finalize(ins_stmt);
   sqlite3_finalize(upd_stmt);
   ins_stmt = NULL;

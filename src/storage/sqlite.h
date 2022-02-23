@@ -20,6 +20,7 @@ private:
   inline void CheckRetCode(int e, const std::string& step, int expected = SQLITE_OK);
   bool IsStatementPrepared();
   void PrepareNextStatement(std::string& masked_tablename, std::shared_ptr<AstsTable> table, fld_count_t* fldnums, fld_count_t fldcount);
+  void TransactionControl(const std::string& action);
 
 public:
   SQLiteStorage();
