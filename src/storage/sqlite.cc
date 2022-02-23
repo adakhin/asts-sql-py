@@ -302,6 +302,11 @@ void SQLiteStorage::Query(std::string_view query, SqlResult& result, std::map<st
   if (error == SQLITE_OK) {
     int ctotal = sqlite3_column_count(statement);
 
+    // SQLite allows multiple fields with the same name in the dataset
+    // we cannot use them as is, because field names will eventually be python dict keys, so we need to rename them
+    // this function renames them Firebird-style:
+    // select sum(f1), count(f1), sum(f2), sum(f3), count(f3) from tbl
+    // -> SUM1 COUNT1 SUM2 SUM3 COUNT2
     std::map<std::string, int> fncounts;
     auto fncount_chk = [&](std::string fieldname) {
       if(fncounts.find(fieldname) != fncounts.end()) {
@@ -340,7 +345,7 @@ void SQLiteStorage::Query(std::string_view query, SqlResult& result, std::map<st
            *  2.1 if it's a table from interface - take it from interface
            *  2.2 if it's an expression - ask SQLite
            *  2.3 if it's a table NOT from interface - ask SQLite as well
-           * We should check field names for duplicates either way
+           * We should check field names for duplicates (and rename them if necessary) either way
           */
           const char * cn = sqlite3_column_origin_name(statement,i);
           aliased_fieldname = sqlite3_column_name(statement,i);
@@ -348,14 +353,15 @@ void SQLiteStorage::Query(std::string_view query, SqlResult& result, std::map<st
           AstsOutField orig_fld;
           if (cn == NULL) // it's an expression
             sqlite_type = true;
-          else {
-            // it's a field from some table
+          else { // it's a field from some table, possibly from interface
             tbl = sqlite3_column_table_name(statement,i);
             bool found = false;
             // search all interfaces for a table with this name
             for (auto& v : interfaces)
               if(v.second->tables.find(tbl) != v.second->tables.end()) {
-                auto orig_iface = v.second;
+                auto& orig_iface = v.second;
+                // search table for a field with this name
+                // maybe we ALTERed table after it was created, and this field is the one we added manually
                 for(auto& field : orig_iface->tables[tbl]->outfields)
                   if(field.name == std::string(cn)) {
                     sqlite_type = false;
@@ -364,10 +370,10 @@ void SQLiteStorage::Query(std::string_view query, SqlResult& result, std::map<st
                     break;
                   }
               }
-            if(!found)
+            if(!found) // field not found in interfaces
               sqlite_type = true;
           }
-          if(sqlite_type) {
+          if(sqlite_type) { // field not found in interfaces
             SqlOutField cfield;
             size_t f = aliased_fieldname.find_first_of('(');
             aliased_fieldname = aliased_fieldname.substr(0, f);
@@ -395,7 +401,7 @@ void SQLiteStorage::Query(std::string_view query, SqlResult& result, std::map<st
             }
             result.fields.push_back(cfield);
           }
-          else {
+          else { // field found in interfaces
             tbl = sqlite3_column_table_name(statement,i);
             SqlOutField tmp;
             tmp.name = fncount_chk(aliased_fieldname);
