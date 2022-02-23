@@ -116,7 +116,7 @@ struct AstsOpenedTable {
 struct SqlOutField {
   std::string name;
   AstsFieldType type;
-  fld_size_t size;
+  int decimals;
 };
 
 struct SqlResult {

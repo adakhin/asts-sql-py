@@ -403,7 +403,7 @@ void SQLiteStorage::Query(std::string_view query, SqlResult& result, std::map<st
             SqlOutField tmp;
             tmp.name = fncount_chk(aliased_fieldname);
             tmp.type = orig_fld.type;
-            tmp.size = orig_fld.size;
+            tmp.decimals = orig_fld.decimals;
             result.fields.push_back(tmp);
           }
         } // if first row (metadata)
