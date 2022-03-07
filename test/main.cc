@@ -15,10 +15,7 @@ int main() {
   for(auto v : tree.get_child("TSMR"))
     connect_str.append(v.first+"="+v.second.data()+"\r\n");
   ad::asts::AstsConnection<ad::asts::SQLiteStorage> asts;
-  if(!asts.Connect("TE", connect_str, errormsg)) {
-    std::cout<< errormsg << std::endl;
-    return 1;
-  }
+  asts.Connect("TE", connect_str);
   asts.OpenTable("TE$TESYSTIME");
   ad::asts::SqlResult result;
   const char* query = R"sql(
