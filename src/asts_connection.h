@@ -22,6 +22,17 @@ private:
   bool debug_ = true;
   storage_engine_t engine_;
 
+  std::string GetSystemFromTableName(const std::string& tablename)
+  {
+      size_t idx = tablename.find('$');
+      if (idx == std::string::npos)
+          throw std::runtime_error("Invalid table name: "+tablename+". Unable to deduce system type");
+      std::string system = tablename.substr(0, idx);
+      if (handles_.find(system) == handles_.end())
+          throw std::runtime_error("Invalid system type: "+system);
+      return system;
+  }
+
   void NewTableInternal(const std::string& system, const std::string& tablename) {
     if(interfaces_[system]->tables.find(tablename) == interfaces_[system]->tables.end())
         throw std::runtime_error("Table "+tablename+" does not exist in interface "+interfaces_[system]->name_);
@@ -104,17 +115,6 @@ public:
       handles_[system] = -1;
     }
     interfaces_.erase(system);
-  }
-
-  std::string GetSystemFromTableName(const std::string& tablename)
-  {
-      size_t idx = tablename.find('$');
-      if (idx == std::string::npos)
-          throw std::runtime_error("Invalid table name: "+tablename+". Unable to deduce system type");
-      std::string system = tablename.substr(0, idx);
-      if (handles_.find(system) == handles_.end())
-          throw std::runtime_error("Invalid system type: "+system);
-      return system;
   }
 
   void OpenTable(const std::string tablename, std::map<std::string, std::string> inparams={}) {

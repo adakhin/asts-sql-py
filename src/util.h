@@ -19,6 +19,7 @@ struct PointerHelper {
   int * _ptr;
   PointerHelper(int * pointer):_ptr(pointer) {}
   int ReadInt() {
+    static_assert(sizeof(int) == 4); // we'll deal with other cases later
     int result = *_ptr;
     ++_ptr;
     return result;
@@ -45,6 +46,7 @@ struct PointerHelper {
 
 
 inline int* ReadValueFromBuf(int* pointer, int & result) {
+  static_assert(sizeof(int32_t) == 4); // we'll deal with other cases later
   result = *pointer;
   return (int32_t *)(pointer + 1);
 }
@@ -58,12 +60,15 @@ inline int* ReadValueFromBuf(int* pointer, std::string & result) {
 }
 
 inline int* SkipIntFromBuf(int* pointer) {
+  static_assert(sizeof(int32_t) == 4); // we'll deal with other cases later
   return (int32_t *)(pointer + 1);
 }
 
 inline int* SkipStringFromBuf(int* pointer) {
   return (int *)((char *)(pointer + 1) + (int)*pointer);
 }
+
+//----- END MTESRL buffer routines -------------------------
 
 inline std::string rpad(std::string s, size_t length) {
   if(s.size() < length) {
