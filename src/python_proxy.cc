@@ -42,8 +42,15 @@ public:
     return tmp;
   }
 
-  void OpenTable(const std::string tablename, std::map<std::string, std::string> inparams={}) {
-     // making BOOST_PYTHON_MEMBER_FUNCTION_OVERLOADS happy
+  void OpenTable(const std::string tablename, bpy::dict in_dict = bpy::dict()) {
+     std::map<std::string, std::string> inparams;
+     bpy::list keys = in_dict.keys();
+     for(size_t i=0; i<bpy::len(keys); ++i) {
+       bpy::str k, v;
+       k = bpy::str(keys[i]);
+       v = bpy::str(in_dict[k]);
+       inparams[std::string(bpy::extract<char const*>(k))] = std::string(bpy::extract<char const*>(v));
+     }
      AstsConnection::OpenTable(tablename, inparams);
   }
 };
