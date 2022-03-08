@@ -133,6 +133,7 @@ public:
       throw std::runtime_error("Table "+tablename+" has not been opened");
     if(handles_[system] >= 0)
       MTECloseTable(handles_[system], tables_[tablename]->ref);
+    engine_.CloseTable(tablename);
     delete tables_[tablename];
     tables_.erase(tablename);
   }
