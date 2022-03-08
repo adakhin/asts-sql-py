@@ -31,6 +31,7 @@ public:
 
   void StartReadingRows(AstsOpenedTable* table);
   void ReadRowFromBuffer(AstsOpenedTable* table, ad::util::PointerHelper& buffer, fld_count_t* fldnums, fld_count_t* fldnums_prev, fld_count_t fldcount);
+  void EraseData(const std::string& tablename, const std::string& secboard="", const std::string& seccode="");
   void StopReadingRows();
 
   void CreateTable(std::shared_ptr<AstsInterface> iface, const std::string& tablename);

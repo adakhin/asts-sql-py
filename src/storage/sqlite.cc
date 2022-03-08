@@ -230,9 +230,17 @@ void SQLiteStorage::ReadRowFromBuffer(AstsOpenedTable* table, ad::util::PointerH
   }
 }
 
+void SQLiteStorage::EraseData(const std::string& tablename, const std::string& secboard, const std::string& seccode) {
+  std::string del = "delete from "+tablename;
+  if(secboard != "")
+    del += " where secboard='"+secboard+"' and seccode = '"+seccode;
+  del += ";";
+  ExecOrThrow(del, "SQLite error occured while deleting data from table "+tablename);
+}
+
 void SQLiteStorage::CloseTable(const std::string& tablename) {
-  std::string del = "delete from "+tablename+";";
-  ExecOrThrow(del, "SQLite error occured while deleting table "+tablename);
+  EraseData(tablename);
+  // we do not drop table to save some time on DDL operations
 }
 
 void SQLiteStorage::StartReadingRows(AstsOpenedTable* table) {

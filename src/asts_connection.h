@@ -67,6 +67,18 @@ private:
          fldcount = buffer.ReadChar();
          // DataLength Integer
          datalen = buffer.ReadInt();
+         if(tbl->thistable_->attr & mmfClearOnUpdate) {
+             // mmfClearOnUpdate: row with datalen==0 means table is now empty
+             if(!datalen) {
+               engine_.EraseData(tbl->tablename_);
+               continue;
+             }
+             // mmfClearOnUpdate: we must erase old contents first and then replace it with new data
+             // but not for orderbooks, orderbooks are tricky
+             if(!is_orderbook && (i == 0))
+               engine_.EraseData(tbl->tablename_);
+         }
+
          // determine list of fields in table
          // WARNING: field order in interface and real data may differ!
          memset(fldnums, 0x00, sizeof(fldnums));
