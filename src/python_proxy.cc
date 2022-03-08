@@ -45,7 +45,7 @@ public:
   void OpenTable(const std::string tablename, bpy::dict in_dict = bpy::dict()) {
      std::map<std::string, std::string> inparams;
      bpy::list keys = in_dict.keys();
-     for(size_t i=0; i<bpy::len(keys); ++i) {
+     for(bpy::ssize_t i=0; i<bpy::len(keys); ++i) {
        bpy::str k, v;
        k = bpy::str(keys[i]);
        v = bpy::str(in_dict[k]);

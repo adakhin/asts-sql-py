@@ -5,6 +5,7 @@
 #include <map>
 #include <memory>
 #include <string.h> // memset
+#include <stdexcept>
 
 #include "mtesrl.h"
 #include "mteerr.h"
