@@ -3,12 +3,11 @@
 #include <sqlite3.h>
 #include <string_view>
 
-#include "../asts_interface.h"
-#include "../util.h"
+#include "../generic_engine.h"
 
 namespace ad::asts {
 
-class SQLiteStorage {
+class SQLiteStorage : GenericStorage {
 private:
   char * tmp_buf;
 
@@ -25,9 +24,8 @@ private:
 public:
   SQLiteStorage();
   ~SQLiteStorage();
-  // MTESRL-related operaions
-  void AddInterface(std::shared_ptr<AstsInterface> iface); // Connect
-  void RemoveInterface(std::shared_ptr<AstsInterface> iface); // Disconnect
+  void AddInterface(std::shared_ptr<AstsInterface> iface);
+  void RemoveInterface(std::shared_ptr<AstsInterface> iface);
 
   void StartReadingRows(AstsOpenedTable* table);
   void ReadRowFromBuffer(AstsOpenedTable* table, ad::util::PointerHelper& buffer, fld_count_t* fldnums, fld_count_t* fldnums_prev, fld_count_t fldcount);
@@ -36,7 +34,7 @@ public:
 
   void CreateTable(std::shared_ptr<AstsInterface> iface, const std::string& tablename);
   void CloseTable(const std::string& tablename);
-  void RefreshTable();
+  void RefreshTable(const std::string& tablename);
   void Query(std::string_view query, SqlResult& result, std::map<std::string, std::shared_ptr<AstsInterface> >& interfaces);
 };
 

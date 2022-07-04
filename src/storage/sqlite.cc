@@ -78,6 +78,9 @@ void SQLiteStorage::AddInterface(std::shared_ptr<AstsInterface> iface) {
   sql.append("create index if not exists MTE$STRUCTURE_IDX on MTE$STRUCTURE (table_name, field_name);");
 }
 
+void SQLiteStorage::RemoveInterface(std::shared_ptr<AstsInterface> iface) {
+}
+
 void SQLiteStorage::CreateTable(std::shared_ptr<AstsInterface> iface, const std::string& tablename) {
   // check if table exists
   std::string expr = "SELECT * FROM sqlite_master WHERE name ='"+tablename+"' and type='table' COLLATE NOCASE;";
@@ -241,6 +244,9 @@ void SQLiteStorage::EraseData(const std::string& tablename, const std::string& s
 void SQLiteStorage::CloseTable(const std::string& tablename) {
   EraseData(tablename);
   // we do not drop table to save some time on DDL operations
+}
+
+void SQLiteStorage::RefreshTable(const std::string& tablename) {
 }
 
 void SQLiteStorage::StartReadingRows(AstsOpenedTable* table) {
@@ -470,6 +476,5 @@ void SQLiteStorage::Query(std::string_view query, SqlResult& result, std::map<st
   }
 
 }
-
 
 }
