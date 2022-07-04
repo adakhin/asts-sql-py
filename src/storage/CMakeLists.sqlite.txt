@@ -1,0 +1,2 @@
+set(SOURCE_STORAGE ${CMAKE_CURRENT_SOURCE_DIR}/src/storage/sqlite.cc)
+set(LIB_STORAGE sqlite3)
