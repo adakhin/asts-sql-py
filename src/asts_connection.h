@@ -123,6 +123,7 @@ public:
       MTEDisconnect(handles_[system]);
       handles_[system] = -1;
     }
+    engine_.RemoveInterface(interfaces_[system]);
     interfaces_.erase(system);
   }
 

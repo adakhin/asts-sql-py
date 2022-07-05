@@ -75,10 +75,14 @@ void SQLiteStorage::AddInterface(std::shared_ptr<AstsInterface> iface) {
       sql.append(";");
       ExecOrThrow(sql, errmsg);
     }
-  sql.append("create index if not exists MTE$STRUCTURE_IDX on MTE$STRUCTURE (table_name, field_name);");
+  sql = "create index if not exists MTE$STRUCTURE_IDX on MTE$STRUCTURE (table_name, field_name);";
+  ExecOrThrow(sql, errmsg);
 }
 
 void SQLiteStorage::RemoveInterface(std::shared_ptr<AstsInterface> iface) {
+  std::string sql = "delete from MTE$STRUCTURE where interface_name = '"+iface->name_+"';";
+  std::string errmsg = std::string("SQLite error while removing reflection of interface ")+iface->name_;
+  ExecOrThrow(sql, errmsg);
 }
 
 void SQLiteStorage::CreateTable(std::shared_ptr<AstsInterface> iface, const std::string& tablename) {
