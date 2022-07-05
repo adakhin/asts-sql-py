@@ -83,7 +83,7 @@ private:
       if(fldcount != 0) {
         // explicit list of fields - copy it to our own buffer from MTESRL-managed one
         memcpy(fldnums, (fld_count_t*)buffer._ptr, fldcount);
-        buffer.Rewind(fldcount);
+        buffer.RewindString(fldcount);
       }
       else {
         // all fields - fill our buffer with consecutive numbers up to outfield_count for this table

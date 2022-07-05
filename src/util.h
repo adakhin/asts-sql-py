@@ -32,41 +32,23 @@ struct PointerHelper {
     _ptr = (int*)temp;
     return result;
   }
-  std::string ReadString(int size) {
-    std::string result = std::string((char *)_ptr, size);
-    _ptr = (int *)((char *)_ptr + size);
+  std::string ReadString(int size = -1) {
+    if(size < 0)
+      size = ReadInt();
+    std::string result = std::string((char*)_ptr, size);
+    _ptr = (int*)((char*)_ptr + size);
     return result;
   }
-  void Rewind(int c=1) {
-    char* temp = (char*)_ptr;
-    temp += c;
-    _ptr = (int*)temp;
+  void RewindString(int size = -1) {
+    if(size < 0)
+      size = ReadInt();
+    _ptr = (int*)((char*)_ptr + size);
+  }
+  void RewindInt() {
+    static_assert(sizeof(int) == 4); // we'll deal with other cases later
+    ++_ptr;
   }
 };
-
-
-inline int* ReadValueFromBuf(int* pointer, int & result) {
-  static_assert(sizeof(int32_t) == 4); // we'll deal with other cases later
-  result = *pointer;
-  return (int32_t *)(pointer + 1);
-}
-
-inline int* ReadValueFromBuf(int* pointer, std::string & result) {
-  int datalen = 0;
-  datalen = *pointer;
-  char* data = (char *)(pointer + 1);
-  result = std::string(data, datalen);
-  return (int *)(data + datalen);
-}
-
-inline int* SkipIntFromBuf(int* pointer) {
-  static_assert(sizeof(int32_t) == 4); // we'll deal with other cases later
-  return (int32_t *)(pointer + 1);
-}
-
-inline int* SkipStringFromBuf(int* pointer) {
-  return (int *)((char *)(pointer + 1) + (int)*pointer);
-}
 
 //----- END MTESRL buffer routines -------------------------
 

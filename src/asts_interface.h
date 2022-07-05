@@ -14,6 +14,7 @@
 #define MTE_SQL_MAX_FIELDS 255
 #endif
 
+namespace ut = ad::util;
 namespace ad::asts {
 
 //-----------------------------------------------------------------------------------
@@ -49,13 +50,13 @@ struct AstsGenericField {
   fld_attr_t attr; 
   int decimals;
 
-  int * ReadFromBuf(int * pointer);
+  void ReadFromBuf(ut::PointerHelper& pointer); 
 };
 
 struct AstsOutField : AstsGenericField {};
 struct AstsInField : AstsGenericField {
   std::string defaultvalue;
-  int * ReadFromBuf(int * pointer);
+  void ReadFromBuf(ut::PointerHelper& pointer); 
 };
 
 struct AstsTable {
@@ -68,7 +69,7 @@ struct AstsTable {
   std::vector<std::pair<size_t, std::string> > keyfields;
   int systemidx;
 
-  int * ReadFromBuf(int * pointer);
+  void ReadFromBuf(ut::PointerHelper& pointer);
 };
 
 struct AstsInterface {

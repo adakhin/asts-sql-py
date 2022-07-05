@@ -167,7 +167,7 @@ void SQLiteStorage::ReadRowFromBuffer(AstsOpenedTable* table, ad::util::PointerH
     int * ptr = buffer._ptr;
     // ASTSConnectivty API Guide says NULL is a value consisting only of spaces
     if(memcmp(ptr, all_spaces, fld.size) == 0) {
-      buffer.Rewind(fld.size);
+      buffer.RewindString(fld.size);
       sqlite3_bind_null(ins_stmt, sqlite_idx);
       if(upd_stmt != NULL)
           sqlite3_bind_null(upd_stmt, sqlite_idx);
@@ -181,7 +181,7 @@ void SQLiteStorage::ReadRowFromBuffer(AstsOpenedTable* table, ad::util::PointerH
         tmp_buf[(int)tmpint] = '.';
         // copy second part of value to temp buffer
         memcpy(tmp_buf+(int)tmpint+1, (char*)ptr+(int)tmpint, fld.decimals);
-        buffer.Rewind(fld.size);
+        buffer.RewindString(fld.size);
         tmpdouble = atof(tmp_buf);
         sqlite3_bind_double(ins_stmt, sqlite_idx, tmpdouble);
         if(upd_stmt != NULL)
@@ -189,7 +189,7 @@ void SQLiteStorage::ReadRowFromBuffer(AstsOpenedTable* table, ad::util::PointerH
         break;
       case AstsFieldType::kFloatPoint:
         memcpy(tmp_buf, ptr, fld.size);
-        buffer.Rewind(fld.size);
+        buffer.RewindString(fld.size);
         tmpdouble = atof(tmp_buf);
         sqlite3_bind_double(ins_stmt, sqlite_idx, tmpdouble);
         if(upd_stmt != NULL)
@@ -197,7 +197,7 @@ void SQLiteStorage::ReadRowFromBuffer(AstsOpenedTable* table, ad::util::PointerH
         break;
       case AstsFieldType::kInteger:
         memcpy(tmp_buf, ptr, fld.size);
-        buffer.Rewind(fld.size);
+        buffer.RewindString(fld.size);
         tmpint = strtoll(tmp_buf, nullptr, 10);
         sqlite3_bind_int64(ins_stmt, sqlite_idx, tmpint);
         if(upd_stmt != NULL)
@@ -211,7 +211,7 @@ void SQLiteStorage::ReadRowFromBuffer(AstsOpenedTable* table, ad::util::PointerH
         sqlite3_bind_text(ins_stmt, sqlite_idx, (char*)ptr, fld.size, SQLITE_TRANSIENT);
         if(upd_stmt != NULL)
           sqlite3_bind_text(upd_stmt, sqlite_idx, (char*)ptr, fld.size, SQLITE_TRANSIENT);
-        buffer.Rewind(fld.size);
+        buffer.RewindString(fld.size);
         break;
     }
   } // for each field in this row
