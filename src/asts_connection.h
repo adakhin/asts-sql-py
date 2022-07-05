@@ -46,7 +46,7 @@ private:
     tables_[tablename] = new AstsOpenedTable(interfaces_[system], tablename);
   }
 
-  void LoadTableData(const std::string& system, AstsOpenedTable* tbl, int32_t* ptr) {
+  void LoadTableData(AstsOpenedTable* tbl, int32_t* ptr) {
     if(tbl->Table < 0)
       return;
     engine_.StartReadingRows(tbl);
@@ -96,16 +96,6 @@ private:
     engine_.StopReadingRows();
   }
 
-  void LoadTableInternal(const std::string& system, AstsOpenedTable* tbl) { // TODO: delete this fn
-    MTEMSG *TableData;
-    std::string params = tbl->ParamsToStr();
-    tbl->Table = MTEOpenTable(handles_[system], (char *)tbl->thistable_->name.c_str(), (char *)params.c_str(), 1, &TableData);
-    if(tbl->Table < 0)
-      throw std::runtime_error("Unable to load table "+tbl->tablename_+": "+std::string(TableData->Data, TableData->DataLen));
-    // load actual data
-    int32_t* ptr = (int32_t*)(TableData->Data);
-    LoadTableData(system, tbl, ptr);
-  }
 public:
   void Connect(const std::string & system, const std::string & params){
     if(handles_.find(system) == handles_.end())
@@ -142,7 +132,12 @@ public:
     auto tbl = tables_[tablename];
     if(!inparams.empty())
         tbl->inparams = inparams;
-    LoadTableInternal(system, tables_[tablename]);
+    MTEMSG *TableData;
+    std::string params = tbl->ParamsToStr();
+    tbl->Table = MTEOpenTable(handles_[system], (char *)tbl->thistable_->name.c_str(), (char *)params.c_str(), 1, &TableData);
+    if(tbl->Table < 0)
+      throw std::runtime_error("Unable to load table "+tbl->tablename_+": "+std::string(TableData->Data, TableData->DataLen));
+    LoadTableData(tbl, (int32_t*)(TableData->Data));
   }
 
   void RefreshTable(const std::string tablename) {
@@ -168,15 +163,14 @@ public:
       if(res != MTE_OK)
         throw std::runtime_error(std::string("MTERefresh returned an error: ")+MTEErrorMsg(res));
       int32_t * ptr=(int32_t *)(TableData->Data);
-      ad::util::PointerHelper pointer(ptr);
-      int tablecount = pointer.ReadInt();
-      switch(tablecount) {
+      switch(*ptr) { // tablecount
       case 0:
           break;
       case 1:
-          LoadTableData(system, tbl, pointer._ptr);
+          LoadTableData(tbl, ptr+1);
           break;
       default:
+          // TODO: add support for multiple tables in refresh
           throw std::runtime_error("Too many tables in MTERefresh()!");
       }
       return;

@@ -24,7 +24,6 @@ public:
 
   virtual void CreateTable(std::shared_ptr<AstsInterface> iface, const std::string& tablename) =0;
   virtual void CloseTable(const std::string& tablename) =0;
-  virtual void RefreshTable(const std::string& tablename) =0;
   virtual void Query(std::string_view query, SqlResult& result, std::map<std::string, std::shared_ptr<AstsInterface> >& interfaces) =0;
 };
 

@@ -246,9 +246,6 @@ void SQLiteStorage::CloseTable(const std::string& tablename) {
   // we do not drop table to save some time on DDL operations
 }
 
-void SQLiteStorage::RefreshTable(const std::string& tablename) {
-}
-
 void SQLiteStorage::StartReadingRows(AstsOpenedTable* table) {
   tmp_buf = new char[table->thistable_->max_fld_len+2];
   TransactionControl("BEGIN");

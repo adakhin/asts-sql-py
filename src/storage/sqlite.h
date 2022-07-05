@@ -34,7 +34,6 @@ public:
 
   void CreateTable(std::shared_ptr<AstsInterface> iface, const std::string& tablename);
   void CloseTable(const std::string& tablename);
-  void RefreshTable(const std::string& tablename);
   void Query(std::string_view query, SqlResult& result, std::map<std::string, std::shared_ptr<AstsInterface> >& interfaces);
 };
 
