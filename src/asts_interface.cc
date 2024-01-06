@@ -133,7 +133,7 @@ std::ostream & operator<< (std::ostream & os, const AstsGenericField & fld) {
 }
 
 std::ostream & operator<< (std::ostream & os, const AstsInField & fld) {
-  os << (AstsGenericField)fld << " Default='"+fld.defaultvalue+"'" << std::endl;
+  os << (AstsGenericField)fld << " Default='"+fld.defaultvalue+"'";
   return os;
 }
 

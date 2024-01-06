@@ -66,5 +66,6 @@ BOOST_PYTHON_MODULE(astslib)
         .def("CloseTable", &AstsConnectionProxy::CloseTable)
         .def("RefreshTable", &AstsConnectionProxy::RefreshTable)
         .def("Query", &AstsConnectionProxy::Query)
+        .def_readwrite("debug", &AstsConnectionProxy::debug);
     ;
 }

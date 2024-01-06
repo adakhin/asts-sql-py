@@ -22,7 +22,6 @@ private:
   std::map<std::string, int> handles_ { {"TE", -1}, {"RE", -1}, {"RFS", -1}, {"ALGO", -1} };
   std::map<std::string, std::shared_ptr<AstsInterface> > interfaces_;
   std::map<std::string, AstsOpenedTable*> tables_;
-  bool debug_ = true;
   storage_engine_t engine_;
 
   std::string GetSystemFromTableName(const std::string& tablename)
@@ -95,8 +94,9 @@ private:
     }
     engine_.StopReadingRows();
   }
-
 public:
+  bool debug = false;
+
   void Connect(const std::string & system, const std::string & params){
     if(handles_.find(system) == handles_.end())
       throw std::runtime_error("Invalid system "+system);
@@ -111,7 +111,7 @@ public:
 
     interfaces_[system] = std::make_shared<AstsInterface>();
     std::string errmsg;
-    if(!interfaces_[system]->LoadInterface(handles_[system], errmsg, debug_))
+    if(!interfaces_[system]->LoadInterface(handles_[system], errmsg, debug))
       throw std::runtime_error("Unable to load interface! "+errmsg);
     engine_.AddInterface(interfaces_[system]);
   }
